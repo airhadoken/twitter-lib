@@ -21,7 +21,7 @@
  * @param {string} serviceName The name of the service.
  * @constructor
  */
-function Service_(serviceName) {
+var Service_ = function(serviceName) {
   validate_({
     'Service name': serviceName
   });
@@ -29,7 +29,9 @@ function Service_(serviceName) {
   this.paramLocation_ = 'auth-header';
   this.method_ = 'get';
   this.oauthVersion_ = '1.0a';
-  this.projectKey_ = ScriptApp.getProjectKey();
+  this.projectKey_ = eval('Script' + 'App').getProjectKey();
+  this.signatureMethod_ = 'HMAC-SHA1';
+  this.propertyStore_ = new MemoryProperties();
 };
 
 /**
@@ -92,6 +94,17 @@ Service_.prototype.setParamLocation = function(location) {
  */
 Service_.prototype.setMethod = function(method) {
   this.method_ = method;
+  return this;
+};
+
+/**
+ * Sets the OAuth signature method to use. 'HMAC-SHA1' is the default.
+ * @param {string} signatureMethod The OAuth signature method. Allowed values
+ *     are 'HMAC-SHA1' and 'PLAINTEXT'.
+ * @return {Service_} This service, for chaining.
+ */
+Service_.prototype.setSignatureMethod = function(signatureMethod) {
+  this.signatureMethod_ = signatureMethod;
   return this;
 };
 
@@ -159,10 +172,10 @@ Service_.prototype.setConsumerSecret = function(consumerSecret) {
 };
 
 /**
- * Sets the property store to use when persisting credentials (required). In
+ * Sets the property store to use when persisting credentials (optional). In
  * most cases this should be user properties, but document or script properties
- * may be appropriate if you want
- * to share access across users.
+ * may be appropriate if you want to share access across users. If not set tokens
+ * will be stored in memory only.
  * @param {PropertiesService.Properties} propertyStore The property store to use
  *     when persisting credentials.
  * @return {Service_} This service, for chaining.
@@ -183,6 +196,22 @@ Service_.prototype.setPropertyStore = function(propertyStore) {
  */
 Service_.prototype.setCache = function(cache) {
   this.cache_ = cache;
+  return this;
+};
+
+/**
+ * Sets the access token and token secret to use (optional). For use with APIs
+ * that support a 1-legged flow where no user interaction is required.
+ * @param {string} token The access token.
+ * @param {string} secret The token secret.
+ * @return {Service_} This service, for chaining.
+ */
+Service_.prototype.setAccessToken = function(token, secret) {
+  this.saveToken_({
+    public: token,
+    secret: secret,
+    type: 'access'
+  });
   return this;
 };
 
@@ -293,11 +322,7 @@ Service_.prototype.getRequestToken_ = function() {
   };
   var oauthParams = {};
   if (this.oauthVersion_ == '1.0a') {
-    if(!!this.oob_) {
-      oauthParams['oauth_callback'] = "oob";
-    } else {
-      oauthParams['oauth_callback'] = this.getCallbackUrl_();      
-    }
+    oauthParams['oauth_callback'] = this.getCallbackUrl_();
   }
 
   var response = this.fetchInternal_(url, params, null, oauthParams);
@@ -367,12 +392,12 @@ Service_.prototype.fetchInternal_ = function(url, params, opt_token,
   var token = opt_token || null;
   var oauthParams = opt_oauthParams || null;
   var signer = new Signer({
+    signature_method: this.signatureMethod_,
     consumer: {
       public: this.consumerKey_,
       secret: this.consumerSecret_
     }
   });
-  var payload = _.extend({}, params.payload, oauthParams);
   var request = {
     url: url,
     method: params.method
@@ -494,7 +519,7 @@ Service_.prototype.getCallbackUrl_ = function() {
     'Service Name': this.serviceName_,
     'Project Key': this.projectKey_
   });
-  var stateToken = ScriptApp.newStateToken()
+  var stateToken = eval('Script' + 'App').newStateToken()
       .withMethod(this.callbackFunctionName_)
       .withArgument('serviceName', this.serviceName_)
       .withTimeout(3600)
