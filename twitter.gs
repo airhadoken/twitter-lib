@@ -194,13 +194,15 @@ OAuth.prototype.grabImage = grabImage;
 * sendTweet() (using the media_id_string params)
 *
 * @param {Blob} imageblob the Blob object representing the image data to upload
+* @param {optional String} alt_text the alt text associated with the image
 * @return {object} the Twitter response as an object if successful, null otherwise
 */
-OAuth.prototype.uploadMedia = function(imageblob) {
+OAuth.prototype.uploadMedia = function(imageblob, alt_text) {
 
   var url = "https://upload.twitter.com/1.1/media/upload.json";
+  var alt_text_url = "https://upload.twitter.com/1.1/media/metadata/create.json"
   var old_location = this.paramLocation_;
-  
+  var media_result, media_json, alt_text_result; 
   var options = {
     method: "POST",
     payload: { "media" : imageblob }
@@ -211,11 +213,21 @@ OAuth.prototype.uploadMedia = function(imageblob) {
   this.paramLocation_ = "uri-query";
   
   try {
-    var result = this.fetch(url, options);
-    Logger.log("Upload media success. Response was:\n" + result.getContentText() + "\n\n");
-    return JSON.parse(result.getContentText("UTF-8"));
-  }  
-  catch (e) {
+    media_result = this.fetch(url, options);
+    Logger.log("Upload media success. Response was:\n" + media_result.getContentText() + "\n\n");
+    media_json = JSON.parse(media_result.getContentText("UTF-8"));
+    if(alt_text) {
+      this.paramLocation_ = old_location;
+      alt_text_result = this.fetch(
+        alt_text_url, 
+        { method: "POST",
+         contentType: "application/json",
+         payload: JSON.stringify({ media_id: media_json.media_id_string, alt_text: { text: alt_text } })
+        });
+      Logger.log("Upload alt text success. Response was:\n" + alt_text_result.getContentText() + "\n\n");
+    }
+    return media_json;
+  } catch (e) {
     options.payload = options.payload && options.payload.length > 100 ? "<truncated>" : options.payload;
     Logger.log("Upload media failed. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + "\n\n");
     return null;
@@ -418,6 +430,16 @@ function encodeString (q) {
 /**
 * Search Twitter for tweets which match the supplied search query, options, and tweet processor function.
 *
+* The options object can have these values:
+* count, include_entities, result_type, since_id, max_id, until, filter, lang, locale, geocode.
+*
+* for more info see: https://dev.twitter.com/rest/reference/get/search/tweets
+* 
+* options can also have the property "multi".  When set to "true", more than one tweet will be returned as
+*  an array, in reverse chronological order (newest first). No matching results will yield an empty array.
+*  When multi is "false" or not supplied, the *oldest* tweet (matching the tweet_processor if supplied) will
+*  be returned.  Without a matching tweet and with multi=false, fetchTwwets returns undefined.
+* 
 * @param {string} search the search string to send to the Twitter API ('lang:en' is attached as well)
 * @param {optional function} tweet_processor a filter function for the returned tweets
 * @param {options object} options a container object for 'since_id', 'count', and 'multi' options
@@ -425,27 +447,41 @@ function encodeString (q) {
 */
 OAuth.prototype.fetchTweets = function(search, tweet_processor, options) {
 
-  var tweets, response, result = [], data, i, candidate;  
-  var phrase = encodeString('lang:' + (options && options.lang || 'en') + ' ' + encodeString(search).replace(/%3A/g, ":")); // English language by default
+  var tweets, response, result = [], data, i, candidate, option_string, multi;  
+  var phrase = encodeString(search).replace(/%3A/g, ":").replace(/%20/g, " ").replace(/%26/g, "&");
 
   this.checkAccess();
 
   if(options == null) {
     options = {};
   }
+  multi = options.multi == null ? false : options.multi;
+  delete options.multi;
+  delete options.callback;
+  
+  options = _.defaults(
+    options, 
+    { count: 5, 
+      include_entities: "false", 
+      result_type: "recent", 
+      q: phrase 
+    });
+  
+  option_string = _.reduce(options, function(str, val, key) {
+    if(val != null && val !== "") {
+      if(str.length > 0) {
+        str += "&";
+      }
+      str += key + "=" + encodeString(val.toString());
+    }
+    return str;
+  }, "");
   
   var url = [
-    "https://api.twitter.com/1.1/search/tweets.json?count=", 
-    (options.count || "5"),
-    options.filter ? ("&filter=" + encodeString(options.filter)) : "",
-    "&include_entities=",
-    options.include_entities ? encodeString(options.include_entities) : "false",
-    "&result_type=",
-    options.result_type ? encodeString(options.result_type) : "recent",
-    "&q=",
-    phrase,
-    options.since_id ? "&since_id=" + encodeString(options.since_id) : ""
+    "https://api.twitter.com/1.1/search/tweets.json?",
+    option_string
     ].join("");
+  
   var request_options =
   {
     "method": "get"
@@ -463,14 +499,14 @@ try {
         tweets = data.statuses;
         
         if(!tweet_processor) {
-          return options && options.multi ? tweets : tweets[tweets.length - 1];
+          return multi ? tweets : tweets[tweets.length - 1];
         }
         for (i=tweets.length-1; i>=0; i--) {
           candidate = tweet_processor(tweets[i]);
           if(candidate === true) candidate = tweets[i];
           if(candidate) {
-            if(options && options.multi) {
-              result.push(candidate);
+            if(multi) {
+              result.unshift(candidate);
             } else {
               return candidate;
             }
