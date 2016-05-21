@@ -65,4 +65,5 @@ passed as argument to to the TransientProperties constructor.
   }
   
   global.TransientProperties = TransientProperties;
+  global.MemoryProperties = TransientProperties;
 })(this);
