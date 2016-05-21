@@ -482,8 +482,6 @@ try {
     if (response.getResponseCode() === 200) {
       
       data = JSON.parse(response.getContentText());
-      Logger.log("Response from Twitter");
-      Logger.log(data);
       if (data) {
         
         tweets = data.statuses;
