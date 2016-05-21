@@ -436,7 +436,7 @@ function encodeString (q) {
 OAuth.prototype.fetchTweets = function(search, tweet_processor, options) {
 
   var tweets, response, result = [], data, i, candidate, option_string, multi;  
-  var phrase = encodeString(search).replace(/%3A/g, ":"); // English language by default
+  var phrase = encodeString(search).replace(/%3A/g, ":").replace(/%20/g, " ").replace(/%26/g, "&");
 
   this.checkAccess();
 
