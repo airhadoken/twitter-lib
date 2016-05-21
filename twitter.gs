@@ -418,6 +418,16 @@ function encodeString (q) {
 /**
 * Search Twitter for tweets which match the supplied search query, options, and tweet processor function.
 *
+* The options object can have these values:
+* count, include_entities, result_type, since_id, max_id, until, filter, lang, locale, geocode.
+*
+* for more info see: https://dev.twitter.com/rest/reference/get/search/tweets
+* 
+* options can also have the property "multi".  When set to "true", more than one tweet will be returned as
+*  an array, in reverse chronological order (newest first). No matching results will yield an empty array.
+*  When multi is "false" or not supplied, the *oldest* tweet (matching the tweet_processor if supplied) will
+*  be returned.  Without a matching tweet and with multi=false, fetchTwwets returns undefined.
+* 
 * @param {string} search the search string to send to the Twitter API ('lang:en' is attached as well)
 * @param {optional function} tweet_processor a filter function for the returned tweets
 * @param {options object} options a container object for 'since_id', 'count', and 'multi' options
@@ -425,27 +435,41 @@ function encodeString (q) {
 */
 OAuth.prototype.fetchTweets = function(search, tweet_processor, options) {
 
-  var tweets, response, result = [], data, i, candidate;  
-  var phrase = encodeString('lang:' + (options && options.lang || 'en') + ' ' + encodeString(search).replace(/%3A/g, ":")); // English language by default
+  var tweets, response, result = [], data, i, candidate, option_string, multi;  
+  var phrase = encodeString(search).replace(/%3A/g, ":"); // English language by default
 
   this.checkAccess();
 
   if(options == null) {
     options = {};
   }
+  multi = options.multi == null ? false : options.multi;
+  delete options.multi;
+  delete options.callback;
+  
+  options = _.defaults(
+    options, 
+    { count: 5, 
+      include_entities: "false", 
+      result_type: "recent", 
+      q: phrase 
+    });
+  
+  option_string = _.reduce(options, function(str, val, key) {
+    if(val != null && val !== "") {
+      if(str.length > 0) {
+        str += "&";
+      }
+      str += key + "=" + encodeString(val.toString());
+    }
+    return str;
+  }, "");
   
   var url = [
-    "https://api.twitter.com/1.1/search/tweets.json?count=", 
-    (options.count || "5"),
-    options.filter ? ("&filter=" + encodeString(options.filter)) : "",
-    "&include_entities=",
-    options.include_entities ? encodeString(options.include_entities) : "false",
-    "&result_type=",
-    options.result_type ? encodeString(options.result_type) : "recent",
-    "&q=",
-    phrase,
-    options.since_id ? "&since_id=" + encodeString(options.since_id) : ""
+    "https://api.twitter.com/1.1/search/tweets.json?",
+    option_string
     ].join("");
+  
   var request_options =
   {
     "method": "get"
@@ -463,14 +487,14 @@ try {
         tweets = data.statuses;
         
         if(!tweet_processor) {
-          return options && options.multi ? tweets : tweets[tweets.length - 1];
+          return multi ? tweets : tweets[tweets.length - 1];
         }
         for (i=tweets.length-1; i>=0; i--) {
           candidate = tweet_processor(tweets[i]);
           if(candidate === true) candidate = tweets[i];
           if(candidate) {
-            if(options && options.multi) {
-              result.push(candidate);
+            if(multi) {
+              result.unshift(candidate);
             } else {
               return candidate;
             }
