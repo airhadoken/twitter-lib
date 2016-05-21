@@ -6,7 +6,7 @@ This library provides easy Twitter API integration for Google Apps Script.  It's
 
 Go to Resources -> Libraries in the Script menus, 
 paste in `MKvHYYdYA4G5JJHj7hxIcoh8V4oX7X1M_` (the project key for this script),
-and add in Twitterlib, version 21 (the most recent).  
+and add in Twitterlib, version 22 (the most recent).  
 
 If you haven't generated (or can't generate) an access token pair for your Twitter app yet,
 paste this code into your script as well:
