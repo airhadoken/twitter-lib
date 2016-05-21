@@ -198,7 +198,6 @@
     var data = {};
 
     for(var i = 0; i < arr.length; i++) {
-      Logger.log(arr[i]);
       var item = arr[i].replace(/%26/g, "&").split('=');
       data[item[0]] = item[1];
     }
