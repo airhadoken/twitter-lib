@@ -194,13 +194,15 @@ OAuth.prototype.grabImage = grabImage;
 * sendTweet() (using the media_id_string params)
 *
 * @param {Blob} imageblob the Blob object representing the image data to upload
+* @param {optional String} alt_text the alt text associated with the image
 * @return {object} the Twitter response as an object if successful, null otherwise
 */
-OAuth.prototype.uploadMedia = function(imageblob) {
+OAuth.prototype.uploadMedia = function(imageblob, alt_text) {
 
   var url = "https://upload.twitter.com/1.1/media/upload.json";
+  var alt_text_url = "https://upload.twitter.com/1.1/media/metadata/create.json"
   var old_location = this.paramLocation_;
-  
+  var media_result, media_json, alt_text_result; 
   var options = {
     method: "POST",
     payload: { "media" : imageblob }
@@ -211,11 +213,21 @@ OAuth.prototype.uploadMedia = function(imageblob) {
   this.paramLocation_ = "uri-query";
   
   try {
-    var result = this.fetch(url, options);
-    Logger.log("Upload media success. Response was:\n" + result.getContentText() + "\n\n");
-    return JSON.parse(result.getContentText("UTF-8"));
-  }  
-  catch (e) {
+    media_result = this.fetch(url, options);
+    Logger.log("Upload media success. Response was:\n" + media_result.getContentText() + "\n\n");
+    media_json = JSON.parse(media_result.getContentText("UTF-8"));
+    if(alt_text) {
+      this.paramLocation_ = old_location;
+      alt_text_result = this.fetch(
+        alt_text_url, 
+        { method: "POST",
+         contentType: "application/json",
+         payload: JSON.stringify({ media_id: media_json.media_id_string, alt_text: { text: alt_text } })
+        });
+      Logger.log("Upload alt text success. Response was:\n" + alt_text_result.getContentText() + "\n\n");
+    }
+    return media_json;
+  } catch (e) {
     options.payload = options.payload && options.payload.length > 100 ? "<truncated>" : options.payload;
     Logger.log("Upload media failed. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + "\n\n");
     return null;
