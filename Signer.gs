@@ -192,12 +192,14 @@
   * @return {Object}
   */
   OAuth.prototype.deParam = function(string) {
-    var arr = string.split('&');
+    var arr = decodeURIComponent(string.replace(/%26/g, "%2526"))
+        .replace(/\+/g, ' ')
+        .split('&');
     var data = {};
 
     for(var i = 0; i < arr.length; i++) {
-      var item = arr[i].split('=');
-      data[decodeURIComponent(item[0])] = decodeURIComponent(item[1]);
+      var item = arr[i].replace(/%26/g, "&").split('=');
+      data[item[0]] = item[1];
     }
     return data;
   };
