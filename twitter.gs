@@ -558,3 +558,49 @@ OAuth.prototype.getShortUrlLength = function() {
     throw e;
   }
 }
+
+/** Send a new direct message to a user.
+@param {String|number|Object} user a User ID or a Screen name or an object containing the key user_id or screen_name
+@parem {String} text the text to send to the user.
+@return {Object} the JSON.parsed response if successful, null otherwise.
+*/
+OAuth.prototype.sendDirectMessage = function(user, text) {
+  var endpoint = "https://api.twitter.com/1.1/direct_messages/new.json";
+  
+  var options = {method: "post", payload: {} };
+  
+  this.checkAccess();
+  
+  switch(typeof user) {
+    case "number": 
+      options.payload.user_id = user.toString();
+      break;
+    case "string":
+      user = user.trim();
+      if(/^\d+$/.test(user)) {
+        options.payload.user_id = user;
+      } else {
+        options.payload.screen_name = user[0] === "@" ? user.slice(1) : user;
+      }
+      break;
+    case "object":
+      if(user.user_id) {
+        options.payload.user_id = user.user_id.toString();
+      } else {
+        options.payload.screen_name = user.screen_name[0] === "@" ? user.screen_name.slice(1) : user.screen_name;
+      }
+      break;
+  }
+  options.payload.text = text;
+  
+  try {
+    var result = this.fetch(endpoint, options);
+    
+    var data = JSON.parse(result.getContentText());
+    
+    return data;
+  } catch(e) {
+    Logger.log(e);
+    return null;
+  }
+}
