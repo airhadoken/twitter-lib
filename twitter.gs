@@ -604,3 +604,33 @@ OAuth.prototype.sendDirectMessage = function(user, text) {
     return null;
   }
 }
+
+function makeFetch(endpoint) {
+  return function (options) {
+    
+    options = options || {};
+    
+    try {
+      var result = this.fetch(endpoint + encodeParams(options), {method: "get"});
+      
+      var data = JSON.parse(result.getContentText());
+      
+      return data;
+    } catch(e) {
+      Logger.log(e);
+      return null;
+    }
+  }
+}
+
+/** Fetch DMs received by the linked account.
+@param {optional Object} options an object of options to pass to the service (valid keys include count, since_id, max_id, skip_status, include_entities)
+@return {Object} the JSON.parsed response if successful, null otherwise.
+*/
+OAuth.prototype.fetchDirectMessages = makeFetch("https://api.twitter.com/1.1/direct_messages.json");
+
+/** Fetch DMs sent by the linked account.
+@param {optional Object} options an object of options to pass to the service (valid keys include count, since_id, max_id, include_entities, page)
+@return {Object} the JSON.parsed response if successful, null otherwise.
+*/
+OAuth.prototype.fetchSentDirectMessages = makeFetch("https://api.twitter.com/1.1/direct_messages/sent.json");
