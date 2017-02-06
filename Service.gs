@@ -16,6 +16,10 @@
  * @fileoverview Contains the Service_ class.
  */
 
+// Disable JSHint warnings for the use of eval(), since it's required to prevent
+// scope issues in Apps Script.
+// jshint evil:true
+
 /**
  * Creates a new OAuth1 service.
  * @param {string} serviceName The name of the service.
@@ -29,7 +33,7 @@ var Service_ = function(serviceName) {
   this.paramLocation_ = 'auth-header';
   this.method_ = 'get';
   this.oauthVersion_ = '1.0a';
-  this.projectKey_ = eval('Script' + 'App').getProjectKey();
+  this.scriptId_ = eval('Script' + 'App').getScriptId();
   this.signatureMethod_ = 'HMAC-SHA1';
   this.propertyStore_ = new MemoryProperties();
 };
@@ -120,16 +124,16 @@ Service_.prototype.setOAuthVersion = function(oauthVersion) {
 };
 
 /**
- * Sets the project key of the script that contains the authorization callback
- * function (required). The project key can be found in the Script Editor UI
+ * Sets the ID of the script that contains the authorization callback
+ * function (required). The script ID can be found in the Script Editor UI
  * under "File > Project properties".
- * @param {string} projectKey The project key of the project containing the
- *     callback function.
+ * @param {string} scriptId The ID of the script containing the callback
+ *     function.
  * @return {Service_} This service, for chaining.
- * @deprecated The project key is now be determined automatically.
+ * @deprecated The script ID is now be determined automatically.
  */
-Service_.prototype.setProjectKey = function(projectKey) {
-  this.projectKey_ = projectKey;
+Service_.prototype.setScriptId = function(scriptId) {
+  this.scriptId_ = scriptId;
   return this;
 };
 
@@ -219,7 +223,7 @@ Service_.prototype.setAccessToken = function(token, secret) {
  * Starts the authorization process. A new token will be generated and the
  * authorization URL for that token will be returned. Have the user visit this
  * URL and approve the authorization request. The user will then be redirected
- * back to your application using the project key and callback function name
+ * back to your application using the script ID and callback function name
  * specified, so that the flow may continue.
  * @returns {string} The authorization URL for a new token.
  */
@@ -235,7 +239,7 @@ Service_.prototype.authorize = function() {
     oauth_token: token.public
   };
   if (this.oauthVersion_ == '1.0') {
-    oauthParams['oauth_callback'] = this.getCallbackUrl_();
+    oauthParams.oauth_callback = this.getCallbackUrl();
   }
   return buildUrl_(this.authorizationUrl_, oauthParams);
 };
@@ -253,14 +257,14 @@ Service_.prototype.handleCallback = function(callbackRequest) {
   var token = this.getToken_();
 
   if (requestToken && requestToken != token.public) {
-    throw 'Error handling callback: token mismatch'
+    throw 'Error handling callback: token mismatch';
   }
 
   if (this.oauthVersion_ == '1.0a' && !verifier) {
     return false;
   }
 
-  var token = this.getAccessToken_(verifier);
+  token = this.getAccessToken_(verifier);
   this.saveToken_(token);
   return true;
 };
@@ -289,7 +293,7 @@ Service_.prototype.fetch = function(url, params) {
   }
   var token = this.getToken_();
   return this.fetchInternal_(url, params, token);
-}
+};
 
 /**
  * Resets the service, removing access and requiring the service to be
@@ -322,11 +326,11 @@ Service_.prototype.getRequestToken_ = function() {
   };
   var oauthParams = {};
   if (this.oauthVersion_ == '1.0a') {
-    oauthParams['oauth_callback'] = this.getCallbackUrl_();
+    oauthParams.oauth_callback = this.getCallbackUrl();
   }
 
   var response = this.fetchInternal_(url, params, null, oauthParams);
-  if (response.getResponseCode() != 200) {
+  if (response.getResponseCode() >= 400) {
     throw 'Error starting OAuth flow: ' + response.getContentText();
   }
 
@@ -355,15 +359,15 @@ Service_.prototype.getAccessToken_ = function(opt_verifier) {
 
   var oauthParams = {};
   if (opt_verifier) {
-    oauthParams['oauth_verifier'] = opt_verifier;
+    oauthParams.oauth_verifier = opt_verifier;
   }
 
   var response = this.fetchInternal_(url, params, token, oauthParams);
-  if (response.getResponseCode() != 200) {
+  if (response.getResponseCode() >= 400) {
     throw 'Error completing OAuth flow: ' + response.getContentText();
   }
 
-  var token = this.parseToken_(response.getContentText());
+  token = this.parseToken_(response.getContentText());
   token.type = 'access';
   return token;
 };
@@ -520,20 +524,19 @@ Service_.prototype.getPropertyKey_ = function() {
 /**
  * Gets a callback URL to use for the OAuth flow.
  * @return {string} A callback URL.
- * @private
  */
-Service_.prototype.getCallbackUrl_ = function() {
+Service_.prototype.getCallbackUrl = function() {
   validate_({
     'Callback Function Name': this.callbackFunctionName_,
     'Service Name': this.serviceName_,
-    'Project Key': this.projectKey_
+    'Script ID': this.scriptId_
   });
   var stateToken = eval('Script' + 'App').newStateToken()
       .withMethod(this.callbackFunctionName_)
       .withArgument('serviceName', this.serviceName_)
       .withTimeout(3600)
       .createToken();
-  return buildUrl_(getCallbackUrl(this.projectKey_), {
+  return buildUrl_(getCallbackUrl(this.scriptId_), {
     state: stateToken
   });
 };

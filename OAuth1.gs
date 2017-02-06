@@ -35,11 +35,11 @@ function createService(serviceName) {
 /**
  * Returns the callback URL that will be used for a given script. Often this URL
  * needs to be entered into a configuration screen of your OAuth provider.
- * @param {string} projectKey The project key of your script, which can be found
+ * @param {string} scriptId The ID of your script, which can be found
  *     in the Script Editor UI under "File > Project properties".
  * @return {string} The callback URL.
  */
-function getCallbackUrl(projectKey) {
+function getCallbackUrl(scriptId) {
   return Utilities.formatString(
-    'https://script.google.com/macros/d/%s/usercallback', projectKey);
+    'https://script.google.com/macros/d/%s/usercallback', scriptId);
 }
