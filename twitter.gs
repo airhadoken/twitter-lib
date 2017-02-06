@@ -437,6 +437,19 @@ function encodeString (q, lite) {
   return str;
 }
 
+function encodeParams(options) {
+  var option_string = _.reduce(options, function(str, val, key) {
+    if(val != null && val !== "") {
+      if(str.length > 0) {
+        str += "&";
+      }
+      str += key + "=" + encodeString(val.toString());
+    }
+    return str;
+  }, "");
+  return option_string;
+}
+
 /**
 * Search Twitter for tweets which match the supplied search query, options, and tweet processor function.
 *
@@ -477,15 +490,7 @@ OAuth.prototype.fetchTweets = function(search, tweet_processor, options) {
       q: phrase 
     });
   
-  option_string = _.reduce(options, function(str, val, key) {
-    if(val != null && val !== "") {
-      if(str.length > 0) {
-        str += "&";
-      }
-      str += key + "=" + encodeString(val.toString());
-    }
-    return str;
-  }, "");
+  option_string = encodeParams(options);
   
   var url = [
     "https://api.twitter.com/1.1/search/tweets.json?",
@@ -634,3 +639,4 @@ OAuth.prototype.fetchDirectMessages = makeFetch("https://api.twitter.com/1.1/dir
 @return {Object} the JSON.parsed response if successful, null otherwise.
 */
 OAuth.prototype.fetchSentDirectMessages = makeFetch("https://api.twitter.com/1.1/direct_messages/sent.json");
+
