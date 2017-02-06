@@ -36,7 +36,7 @@ function OAuth(properties) {
       .setRequestTokenUrl('https://api.twitter.com/oauth/request_token')
       .setAuthorizationUrl('https://api.twitter.com/oauth/authorize')
       .setCallbackFunction('authCallback')
-      .setProjectKey(ScriptApp.getScriptId());
+      .setScriptId(ScriptApp.getScriptId());
   
   if(properties) {
     this.setPropertyStore(properties); 
@@ -404,7 +404,7 @@ OAuth.prototype.retweet = function(tweet) {
 * @param {string} q the string to encode
 * @return {string} the appropriately encoded string, with ()\[]!*' characters turned into %## forms
 */
-function encodeString (q) {
+function encodeString (q, lite) {
   
   // Update: 2014-06-05
   
@@ -424,6 +424,16 @@ function encodeString (q) {
             })).replace(/[()\[\]!*']/g, function(badchar) { 
              return "%" + badchar.charCodeAt(0).toString(16); 
            });
+  
+  if(lite) {
+    // "Lite" mode encoding is for Twitter's query format rather than
+    //  for just encoding strings to POST.  We definitely need to encode
+    //  special-for-OAuth chars, but certain other punctuation is encoded
+    //  where it shouldn't be.  The ones known to need to
+    //  be unencoded are :, <space>, &, <comma>, /
+    str = str.replace(/%(20|26|3A|2C|2F)/g, decodeURIComponent); 
+  }
+  
   return str;
 }
 
@@ -448,7 +458,7 @@ function encodeString (q) {
 OAuth.prototype.fetchTweets = function(search, tweet_processor, options) {
 
   var tweets, response, result = [], data, i, candidate, option_string, multi;  
-  var phrase = encodeString(search).replace(/%3A/g, ":").replace(/%20/g, " ").replace(/%26/g, "&");
+  var phrase = encodeString(search, true);
 
   this.checkAccess();
 
