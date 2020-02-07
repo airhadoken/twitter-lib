@@ -349,7 +349,7 @@ OAuth.prototype.sendTweet = function(tweet, params, options) {
 * Favorite a tweet by ID
 *
 * @param {string | Tweet} tweet ID of a Tweet, or a Tweet object
-* @return {object} the Twitter response as an object if successful, null otherwise
+* @return {object} the Twitter response as an object if successful, false otherwise
 */
 OAuth.prototype.favorite = function(tweet) {
   var options = {
@@ -375,7 +375,7 @@ OAuth.prototype.favorite = function(tweet) {
 * Retweet a tweet to Twitter by ID
 *
 * @param {string | Tweet} tweet ID of a Tweet, or a Tweet object
-* @return {object} the Twitter response as an object if successful, null otherwise
+* @return {object} the Twitter response as an object if successful, false otherwise
 */
 OAuth.prototype.retweet = function(tweet) {
   var options = {
@@ -393,6 +393,38 @@ OAuth.prototype.retweet = function(tweet) {
     return JSON.parse(result.getContentText("UTF-8"));
   } catch (e) {
     Logger.log("Retweet failed. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + "\n\n");
+    return false;
+  }
+    
+}
+
+/**
+* Follow the given user
+*
+* @param {User} User object with id or screen_name property
+* @return {object} the Twitter response as an object if successful, false otherwise
+*/
+OAuth.prototype.follow = function(user) {
+  var options = {
+    method: "POST"
+  };
+  
+  if (user.screen_name) {
+    options.payload = { screen_name : user.screen_name}
+  } else if (user.id) {
+    options.payload = { id : user.id}
+  }
+  
+  var url = "https://api.twitter.com/1.1/friendships/create.json";
+  
+  this.checkAccess();
+  
+  try {    
+    var result = this.fetch(url, options);
+    Logger.log("Follow success. Response was:\n" + result.getContentText() + "\n\n"); 
+    return JSON.parse(result.getContentText("UTF-8"));
+  } catch (e) {
+    Logger.log("Follow failed. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + "\n\n");
     return false;
   }
     
