@@ -56,7 +56,7 @@ function validate_(params) {
 function isEmpty_(value) {
   var _ = Underscore.load();
   return value == null || value == undefined ||
-      ((_.isObject(value) || _.isString(value)) && _.isEmpty(value));
+      ((_.isObject(value) || _.isString(value)) && _.isEmpty(value) && _.isEmpty(value.getProperties()));
 }
 
 /**
