@@ -1,0 +1,3 @@
+[submodule "apps-script-oauth1"]
+	path = apps-script-oauth1
+	url = git@github.com:airhadoken/apps-script-oauth1.git
