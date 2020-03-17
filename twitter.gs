@@ -31,6 +31,8 @@ you don't need to do anything else.  You're ready to get started!  fetchTweets, 
 *
 * @return {Twitterlib.OAuth} Twitter-customized instance of OAuth1
 */
+this._ = Underscore.load();
+
 function OAuth(properties) {
   this.setAccessTokenUrl('https://api.twitter.com/oauth/access_token')
       .setRequestTokenUrl('https://api.twitter.com/oauth/request_token')
