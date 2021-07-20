@@ -240,6 +240,189 @@ OAuth.prototype.uploadMedia = function(imageblob, alt_text) {
 }
 
 /**
+* Initiate a file upload session. Returns an object with a media_id attribute which should be used 
+* to execute all subsequent requests. Use it in uploadMediaAppend and uploadMediaAppend uploadMediaFinalize methods.
+*
+* @param {Blob} mediablob the Blob object representing the file data to upload
+*
+* @param {String} media_category A string enum value which identifies a media usecase. This identifier is used
+* to enforce usecase specific constraints (e.g. file size, video duration) and enable advanced features.	
+*
+* @param {optional String} additional_owners A comma-separated list of user IDs to set as additional owners allowed
+* to use the returned media_id in Tweets or Cards. Up to 100 additional owners may be specified.		
+*
+* @return {object} the Twitter response as an object if successful, null otherwise
+*/
+OAuth.prototype.uploadMediaInit = function(mediablob, media_category, additional_owners) {
+
+  var url = "https://upload.twitter.com/1.1/media/upload.json";
+  var old_location = this.paramLocation_;
+  var media_result, media_json;
+
+  let contentType = mediablob.getContentType();
+  let size = mediablob.getBytes().length;
+
+  var options = {
+    method: "POST",
+  };
+  
+  this.checkAccess();
+  
+  this.paramLocation_ = "auth-header";
+
+  url = url + "?command=INIT&total_bytes=" + size + "&media_type=" + encodeURIComponent(contentType) + "&media_category=" + media_category;
+
+  if(additional_owners) {
+    url = url + "&additional_owners=" + additional_owners
+  }
+  
+  try {
+    media_result = this.fetch(url, options);
+    Logger.log("Upload media INIT success. Response was:\n" + media_result.getContentText() + "\n\n");
+    media_json = JSON.parse(media_result.getContentText("UTF-8"));
+    
+    return media_json;
+  } catch (e) {
+    Logger.log(e);
+    options.payload = options.payload && options.payload.length > 100 ? "<truncated>" : options.payload;
+    Logger.log("Upload media failed. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + "\n\n");
+    return null;
+  } finally {
+    this.paramLocation_ = old_location;
+  }
+    
+}
+
+/**
+* Upload a chunk (consecutive byte range) of the media file. For example, a 3 MB file could be split
+* into 3 chunks of size 1 MB, and uploaded using 3 calls to the method. After the entire file is uploaded,
+* the next step is to call the uploadMediaFinalize method.
+*
+* @param {Blob} mediablob the Blob object representing the file data to upload
+* @param {String} media_id The media_id returned from the uploadMediaInit method.
+* @param {Number} segment_index An ordered index of file chunk. It must be between 0-999 inclusive. The first
+* segment has index 0, second segment has index 1, and so on.		
+*
+* @return {object} the Twitter response as an object if successful, null otherwise
+*/
+OAuth.prototype.uploadMediaAppend = function(mediablob, media_id, segment_index) {
+
+  var url = "https://upload.twitter.com/1.1/media/upload.json";
+  var old_location = this.paramLocation_;
+  var media_result; 
+
+  var postData = '------xxxxxxxxxxxxxxxxxxxxx\r\nContent-Disposition: form-data; name=\"media_data\";filename=\"' +
+  mediablob.getName() + '\"\r\nContent-Type: \"' + mediablob.getContentType() + '\"\r\n\r\n' + 
+  Utilities.base64Encode(mediablob.getBytes()) + "\r\n------xxxxxxxxxxxxxxxxxxxxx--";
+
+  var options = {
+    method: "POST",
+    payload: postData,
+    contentType: "multipart/form-data; boundary=----xxxxxxxxxxxxxxxxxxxxx"
+  };
+  
+  this.checkAccess();
+  
+  this.paramLocation_ = "auth-header";
+
+  url = url + "?command=APPEND&media_id=" + media_id + "&segment_index=" + segment_index;
+  
+  try {
+    media_result = this.fetch(url, options);
+    Logger.log("Upload media APPEND success. Response code was: " + media_result.getResponseCode() + "\n\n");
+    return media_result;
+  } catch (e) {
+    Logger.log(e);
+    options.payload = options.payload && options.payload.length > 100 ? "<truncated>" : options.payload;
+    Logger.log("Upload media failed. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + "\n\n");
+    return null;
+  } finally {
+    this.paramLocation_ = old_location;
+  }
+}
+
+/**
+* This method should be called after the entire media file is uploaded using uploadMediaAppend method.
+* If and (only if) the response of the uploadMediaFinalize command contains a processing_info field, 
+* it may also be necessary to use uploadMediaStatus method and wait for it to return success before 
+* proceeding to Tweet creation.
+*
+* @param {String} media_id The media_id returned from the uploadMediaInit method.
+*		
+* @return {object} the Twitter response as an object if successful, null otherwise
+*/
+OAuth.prototype.uploadMediaFinalize = function(media_id) {
+
+  var url = "https://upload.twitter.com/1.1/media/upload.json";
+  var old_location = this.paramLocation_;
+  var media_result, media_json; 
+
+  var options = {
+    method: "POST"
+  };
+  
+  this.checkAccess();
+  
+  this.paramLocation_ = "auth-header";
+
+  url = url + "?command=FINALIZE" + "&media_id=" + media_id;
+  
+  try {
+    media_result = this.fetch(url, options);
+    Logger.log("Upload media FINALIZE success. Response was:\n" + media_result.getContentText() + "\n\n");
+    media_json = JSON.parse(media_result.getContentText("UTF-8"));
+    return media_json;
+  } catch (e) {
+    Logger.log(e);
+    options.payload = options.payload && options.payload.length > 100 ? "<truncated>" : options.payload;
+    Logger.log("Upload media failed. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + "\n\n");
+    return null;
+  } finally {
+    this.paramLocation_ = old_location;
+  } 
+}
+
+/**
+* This methodd is used to periodically poll for updates of media processing operation. After the uploadMediaStatus
+* method response returns succeeded, you can move on to the next step which is usually create Tweet with media_id.
+*
+* @param {String} media_id The media_id returned from the uploadMediaInit method.
+*		
+* @return {object} the Twitter response as an object if successful, null otherwise
+*/
+OAuth.prototype.uploadMediaStatus = function(media_id) {
+
+  var url = "https://upload.twitter.com/1.1/media/upload.json";
+
+
+  var old_location = this.paramLocation_;
+
+  var options = {
+    method: "GET"
+  };
+  
+  this.checkAccess();
+  
+  this.paramLocation_ = "auth-header";
+
+  url = url + "?command=STATUS&media_id=" + media_id;
+  
+  try {
+    media_result = this.fetch(url, options);
+    Logger.log("Upload media STATUS success. Response was:\n" + media_result.getContentText() + "\n\n");
+    media_json = JSON.parse(media_result.getContentText("UTF-8"));
+    return media_json;
+  } catch (e) {
+    Logger.log(e);
+    options.payload = options.payload && options.payload.length > 100 ? "<truncated>" : options.payload;
+    Logger.log("Upload media failed. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + "\n\n");
+    return null;
+  } finally {
+    this.paramLocation_ = old_location;
+  }
+}
+
+/**
 * Kick off the authorization flow for when the OAuth instance doesn't yet have access tokens.
 * For a document, spreadsheet, or form, this will spawn a popup window with a link for the user to click.
 * For standalone, this will send an email to the user with the link.
