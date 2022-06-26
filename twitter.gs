@@ -342,7 +342,7 @@ OAuth.prototype.sendTweet = function(tweet, params, options) {
     return JSON.parse(result.getContentText("UTF-8"));
   } catch (e) {
     Logger.log("Send tweet failure. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + "\n\n");
-    return null;
+    return JSON.parse(result.getContentText("UTF-8"));
   }
     
 }
