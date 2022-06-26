@@ -231,7 +231,7 @@ OAuth.prototype.uploadMedia = function(imageblob, alt_text) {
     return media_json;
   } catch (e) {
     options.payload = options.payload && options.payload.length > 100 ? "<truncated>" : options.payload;
-    Logger.log("Upload media failed. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + "\n\n");
+    Logger.log("Upload media failed. Error was:\n" + e + "\n\noptions were:\n" + JSON.stringify(options) + ((typeof media_result !== 'undefined')?"\n\nmedia_result was:\n" + media_result:"") + ((typeof alt_text_result !== 'undefined')?"\n\nalt_text_result was:\n" + alt_text_result:"") + "\n\n");
     return null;
   } finally {
     this.paramLocation_ = old_location;
@@ -341,7 +341,7 @@ OAuth.prototype.sendTweet = function(tweet, params, options) {
     Logger.log("Send tweet success. Response was:\n" + result.getContentText("UTF-8") + "\n\n"); 
     return JSON.parse(result.getContentText("UTF-8"));
   } catch (e) {
-    Logger.log("Send tweet failure. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + "\n\n");
+    Logger.log("Send tweet failure. Error was:\n" + e + "\n\noptions were:\n" + JSON.stringify(options) + ((typeof result !== 'undefined')?"\n\nresult was:\n" + result:"") + "\n\n");
     return null;
   }
     
@@ -367,7 +367,7 @@ OAuth.prototype.favorite = function(tweet) {
     Logger.log("Tweet favorite success. Response was:\n" + result.getContentText() + "\n\n"); 
     return JSON.parse(result.getContentText("UTF-8"));
   } catch (e) {
-    Logger.log("Tweet favorite failed. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + "\n\n");
+    Logger.log("Tweet favorite failed. Error was:\n" + e + "\n\noptions were:\n" + JSON.stringify(options) + ((typeof result !== 'undefined')?"\n\nresult was:\n" + result:"") + "\n\n");
     return false;
   }
     
@@ -394,7 +394,7 @@ OAuth.prototype.retweet = function(tweet) {
     Logger.log("Retweet success. Response was:\n" + result.getContentText() + "\n\n"); 
     return JSON.parse(result.getContentText("UTF-8"));
   } catch (e) {
-    Logger.log("Retweet failed. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + "\n\n");
+    Logger.log("Retweet failed. Error was:\n" + e + "\n\noptions were:\n" + JSON.stringify(options) + ((typeof result !== 'undefined')?"\n\nresult was:\n" + result:"") + "\n\n");
     return false;
   }
     
@@ -535,7 +535,7 @@ try {
       Logger.log(response);
     }
   } catch (e) {
-    Logger.log(JSON.stringify(e));
+    Logger.log(e);
     throw e;
   }
   return result;
@@ -556,7 +556,7 @@ OAuth.prototype.getShortUrlLength = function() {
     
     return data.short_url_length_https;
   } catch (e) {
-    Logger.log(JSON.stringify(e));
+    Logger.log(e);
     throw e;
   }
 }
