@@ -285,7 +285,7 @@ OAuth.prototype.uploadMediaInit = function(mediablob, media_category, additional
   } catch (e) {
     Logger.log(e);
     options.payload = options.payload && options.payload.length > 100 ? "<truncated>" : options.payload;
-    Logger.log("Upload media failed. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + "\n\n");
+    Logger.log("Upload media failed. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + ((typeof media_result !== 'undefined')?"\n\nmedia_result was:\n" + media_result:"") + "\n\n");
     return null;
   } finally {
     this.paramLocation_ = old_location;
@@ -334,7 +334,7 @@ OAuth.prototype.uploadMediaAppend = function(mediablob, media_id, segment_index)
   } catch (e) {
     Logger.log(e);
     options.payload = options.payload && options.payload.length > 100 ? "<truncated>" : options.payload;
-    Logger.log("Upload media failed. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + "\n\n");
+    Logger.log("Upload media failed. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + ((typeof media_result !== 'undefined')?"\n\nmedia_result was:\n" + media_result:"") + "\n\n");
     return null;
   } finally {
     this.paramLocation_ = old_location;
@@ -375,7 +375,7 @@ OAuth.prototype.uploadMediaFinalize = function(media_id) {
   } catch (e) {
     Logger.log(e);
     options.payload = options.payload && options.payload.length > 100 ? "<truncated>" : options.payload;
-    Logger.log("Upload media failed. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + "\n\n");
+    Logger.log("Upload media failed. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + ((typeof media_result !== 'undefined')?"\n\nmedia_result was:\n" + media_result:"") + "\n\n");
     return null;
   } finally {
     this.paramLocation_ = old_location;
@@ -415,7 +415,7 @@ OAuth.prototype.uploadMediaStatus = function(media_id) {
   } catch (e) {
     Logger.log(e);
     options.payload = options.payload && options.payload.length > 100 ? "<truncated>" : options.payload;
-    Logger.log("Upload media failed. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + "\n\n");
+    Logger.log("Upload media failed. Error was:\n" + JSON.stringify(e) + "\n\noptions were:\n" + JSON.stringify(options) + ((typeof media_result !== 'undefined')?"\n\nmedia_result was:\n" + media_result:"") + "\n\n");
     return null;
   } finally {
     this.paramLocation_ = old_location;
