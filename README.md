@@ -1,6 +1,6 @@
 # Twitter Lib for Google Apps Script
 
-This library provides easy Twitter API integration for Google Apps Script.  It's based on a modified version of [Google's OAuth1](https://github.com/googlesamples/apps-script-oauth1) library, and adds convenience functions for Twitter's API endpoints and tighter properties integrations.
+This library provides easy Twitter API (OAuth 1.0a Only) integration for Google Apps Script.  It's based on a modified version of [Google's OAuth1](https://github.com/googlesamples/apps-script-oauth1) library, and adds convenience functions for Twitter's OAuth 1.0a API endpoints and tighter properties integrations.
 
 # Use
 
